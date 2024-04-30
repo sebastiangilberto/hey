@@ -64,6 +64,7 @@ var (
 	disableKeepAlives       = flag.Bool("disable-keepalive", false, "")
 	disableRedirects        = flag.Bool("disable-redirects", false, "")
 	disableConnectionsReuse = flag.Bool("disable-connections-reuse", false, "")
+	printConnectionInfo     = flag.Bool("print-connection-info", false, "")
 	proxyAddr               = flag.String("x", "", "")
 )
 
@@ -101,6 +102,7 @@ Options:
                         connections between different HTTP requests.
   -disable-redirects    Disable following of HTTP redirects
   -disableConnectionsReuse Disable connections reuse, closes the connections after each request from client-side.
+  -print-connection-info Print connection info.
   -cpus                 Number of used cpu cores.
                         (default for current machine is %d cores)
 `
@@ -234,6 +236,7 @@ func main() {
 		DisableKeepAlives:       *disableKeepAlives,
 		DisableRedirects:        *disableRedirects,
 		DisableConnectionsReuse: *disableConnectionsReuse,
+		PrintConnectionInfo:     *printConnectionInfo,
 		H2:                      *h2,
 		ProxyAddr:               proxyURL,
 		Output:                  *output,

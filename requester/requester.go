@@ -84,6 +84,9 @@ type Work struct {
 	// DisableConnectionsReuse is an option to close connections from client-side between different HTTP requests
 	DisableConnectionsReuse bool
 
+	//PrintConnectionInfo is an option to print connection info
+	PrintConnectionInfo bool
+
 	// Output represents the output type. If "csv" is provided, the
 	// output will be dumped as a csv stream.
 	Output string
@@ -174,7 +177,9 @@ func (b *Work) makeRequest(c *http.Client) {
 				connDuration = now() - connStart
 			}
 			reqStart = now()
-			fmt.Fprintf(b.writer(), "DisableConnectionsReuse: %t, Got Conn: %+v\n", b.DisableConnectionsReuse, connInfo)
+			if b.PrintConnectionInfo {
+				fmt.Fprintf(b.writer(), "DisableConnectionsReuse: %t, Got Conn: %+v\n", b.DisableConnectionsReuse, connInfo)
+			}
 		},
 		WroteRequest: func(w httptrace.WroteRequestInfo) {
 			reqDuration = now() - reqStart
