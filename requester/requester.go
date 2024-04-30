@@ -18,20 +18,20 @@ package requester
 import (
 	"bytes"
 	"crypto/tls"
+	"fmt"
+	"golang.org/x/net/http2"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
 	"os"
 	"sync"
 	"time"
-
-	"golang.org/x/net/http2"
 )
 
 // Max size of the buffer of result channel.
 const maxResult = 1000000
+
 const maxIdleConn = 500
 
 type result struct {
@@ -80,6 +80,9 @@ type Work struct {
 
 	// DisableRedirects is an option to prevent the following of HTTP redirects
 	DisableRedirects bool
+
+	// DisableConnectionsReuse is an option to close connections from client-side between different HTTP requests
+	DisableConnectionsReuse bool
 
 	// Output represents the output type. If "csv" is provided, the
 	// output will be dumped as a csv stream.
@@ -171,6 +174,7 @@ func (b *Work) makeRequest(c *http.Client) {
 				connDuration = now() - connStart
 			}
 			reqStart = now()
+			fmt.Fprintf(b.writer(), "DisableConnectionsReuse: %t, Got Conn: %+v\n", b.DisableConnectionsReuse, connInfo)
 		},
 		WroteRequest: func(w httptrace.WroteRequestInfo) {
 			reqDuration = now() - reqStart
@@ -182,12 +186,18 @@ func (b *Work) makeRequest(c *http.Client) {
 		},
 	}
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+
 	resp, err := c.Do(req)
 	if err == nil {
 		size = resp.ContentLength
 		code = resp.StatusCode
-		io.Copy(ioutil.Discard, resp.Body)
-		resp.Body.Close()
+
+		if !b.DisableConnectionsReuse {
+			//req.Close = true
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+		}
+
 	}
 	t := now()
 	resDuration = t - resStart
@@ -274,14 +284,7 @@ func cloneRequest(r *http.Request, body []byte) *http.Request {
 		r2.Header[k] = append([]string(nil), s...)
 	}
 	if len(body) > 0 {
-		r2.Body = ioutil.NopCloser(bytes.NewReader(body))
+		r2.Body = io.NopCloser(bytes.NewReader(body))
 	}
 	return r2
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
